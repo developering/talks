@@ -1,0 +1,4 @@
+.slidev-layout h1 + p {
+  margin-top: 0;
+  opacity: 1;
+}

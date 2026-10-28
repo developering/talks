@@ -1,288 +1,191 @@
 ---
-theme: default
-background: https://cover.sli.dev
-title: Keeping Code Dark
+theme: seriph
+title: Dark Code
 info: |
-  ## Keeping Code Dark
+  ## Dark Code
   Shipping a large feature to master in small, reviewable pieces —
   without ever exposing half-built work to users.
+layout: center
 class: text-center
-transition: slide-left
+transition: fade
 ---
 
-# Keeping Code Dark
-
-## Building big features without big PRs
-
-<div @click="$slidev.nav.next" class="mt-12 py-1" hover:bg="white op-10">
-  Press Space for next page <carbon:arrow-right />
-</div>
-
-<!--
-Follow-up to "Killing Code Review." That talk argued for small PRs merged straight to master.
-This talk is the how: what do you actually do with the ticket while the feature
-underneath isn't done yet?
--->
+# DARK CODE
 
 ---
+layout: center
+class: text-center
+---
 
-# The problem
-
-A big feature can't land in one PR.
-
-- Too much to review well
-- Too risky to merge in one shot
-- Too slow — you're blocked on review instead of building
+<img src="/my-family.JPG" class="h-80 mx-auto mt-6 rounded-lg shadow-lg" />
 
 <v-click>
 
-But `master` still has to be deployable after every merge.
+<div class="mt-6 text-xl">
 
-</v-click>
-
-<!--
-So the tension: we want small, frequent PRs, but the feature they add up to
-isn't done until the last one lands. What do users see in the meantime? Nothing.
--->
-
----
-
-# The answer: keep it dark
-
-<div class="text-2xl mt-8">
-
-Merge early. Merge often. <strong>Ship nothing.</strong>
+People listen to you when you show them a picture of your family.
 
 </div>
 
-<v-click>
-
-Dark code is code that's in `master`, running in production, and completely
-invisible to anyone who isn't looking for it.
-
 </v-click>
 
 ---
-
-# Techniques
-
-1. Feature flags
-2. Dark pages
-3. Unlinked routes
-4. Renames / additive schema changes
-5. Branch by abstraction
-
-<!--
-These aren't mutually exclusive — most features use two or three of these
-at once depending on the layer (UI vs API vs DB).
--->
-
----
-layout: two-cols
-layoutClass: gap-8
+layout: center
+class: text-center
+lightsOnAtClick: 1
 ---
 
-# Feature flags
+# What is dark code?
 
-Wrap the new behavior in a flag. Off in prod, on wherever you're testing.
+<img v-if="$clicks < 1" src="/dark-mode-light-code.png" class="h-80 mx-auto mt-6 rounded-lg shadow-lg" />
+<img v-else src="/light-mode-dark-code.png" class="h-80 mx-auto mt-6 rounded-lg shadow-lg" />
 
-```ts
-if (flags.isEnabled('new-account-linking')) {
-  return renderNewFlow()
-}
-return renderOldFlow()
-```
+<div v-click="2" class="text-3xl mt-10">
 
-::right::
-
-<v-click>
-
-**Good for:**
-Behavior changes to an existing screen, gradual rollout, kill switch.
-
-**Watch out:**
-Flags that outlive the feature become tech debt. Delete the flag *and* the
-dead branch the moment it's fully rolled out — that's part of the ticket,
-not a someday cleanup.
-
-</v-click>
-
-<!--
-This is the one everyone already does. The risk isn't the flag itself,
-it's leaving it in the code six months later with both branches still live.
--->
-
----
-
-# Dark pages
-
-Ship the whole new screen — routed, rendered, real — just don't link to it.
-
-- No nav entry
-- No button
-- No deep link anyone's told about
-
-<v-click>
-
-It exists. It works. Nobody can find it because nothing points at it yet.
-
-</v-click>
-
-<v-click class="mt-4">
-
-Add the link in the **last** PR, once the page is actually done.
-
-</v-click>
-
-<!--
-This is different from a flag: there's no conditional at all, no old/new
-branch to maintain. The page is just... not linked. Way less code to carry
-during the build-out.
--->
-
----
-
-# Unlinked routes
-
-Same idea, one layer down: add the API route or the mobile screen route,
-but nothing calls it yet.
-
-```
-POST /v2/accounts/relink   <-- exists, deployed, zero traffic
-```
-
-<v-click>
-
-Mobile-specific version of this: **put the new screen behind a debug-menu
-entry** instead of the real nav. QA and engineering can drive it manually;
-end users never see the debug menu.
-
-</v-click>
-
-<v-click class="mt-4">
-
-Wire up the real entry point once the feature's actually done.
-
-</v-click>
-
----
-
-# Renames and schema changes
-
-The riskiest "small" PRs, because they touch things that already have traffic.
-
-<v-click>
-
-Rule: every step must leave `master` in a working state on its own.
-
-</v-click>
-
-<div v-click class="mt-4">
-
-- Add the new column/field **alongside** the old one — don't rename in place
-- Backfill in its own PR
-- Cut reads over once backfill is verified
-- Cut writes over
-- Drop the old column in a **final**, separate PR — after a deploy cycle of confidence
+Light Theme = Dark Code
 
 </div>
 
-<!--
-This is the pattern that turns a "big scary migration" into five boring,
-reviewable, revertible PRs. Each one ships dark in the sense that it changes
-nothing a user can observe.
--->
-
 ---
 
-# Branch by abstraction
+# A real definition
 
-For a bigger internal rewrite: put an interface in front of the thing you're
-replacing before you touch the thing itself.
-
-```
-Caller → Abstraction → OldImplementation
-```
+Code that's merged and deployed, but not yet visible to users.
 
 <v-click>
 
-Then swap implementations behind it, one small PR at a time:
+<div class="mt-6">
 
-</v-click>
+Examples:
 
-<div v-click class="mt-2">
-
-```
-Caller → Abstraction → NewImplementation   (flag-controlled, per caller)
-```
+- New screen with no links to it
+- New API endpoint nothing calls yet
+- New implementation sitting next to the old one, not yet swapped in
 
 </div>
-
-<v-click class="mt-4">
-
-Delete `OldImplementation` only after every caller's on the new one.
 
 </v-click>
 
 ---
 
-# The discipline that makes this work
+# Why keep it dark?
 
-<div class="grid grid-cols-2 gap-6 mt-4">
-<div>
+<v-clicks>
 
-**Every PR:**
-- Leaves `master` deployable
-- Changes nothing observable, or is flagged
-- Is small enough to review in minutes
+- Merge to master early and often
+- Ship confidently
+- Integrate smoothly
+- Improve engineering skills
+
+</v-clicks>
+
+---
+layout: center
+class: text-center
+---
+
+<img src="/napoleon-skills.jpg" class="h-96 mx-auto rounded-lg shadow-lg" />
+
+---
+layout: section
+---
+
+# How do we keep it dark?
+
+---
+
+# Debug page
+
+Put the new screen on the debug page. Nothing else links to it.
+
+<div class="mt-10 text-2xl">
+
+<a href="https://www.everydollar.com/app/debug" target="_blank">everydollar.com/app/debug</a>
+
+</div>
+
+---
+
+# Local feature flag
+
+<div class="grid grid-cols-2 gap-8 items-center">
+<div class="text-2xl">
+
+A debug-menu toggle that turns the new flow on for you, and only you.
 
 </div>
 <div>
 
-**Every feature:**
-- Has a named "wire it up" PR at the end
-- Has a named "delete the flag / old code" PR after rollout
-- Doesn't get called done until that cleanup PR merges
+<img src="/debug-feature-flags.png" class="h-96 mx-auto rounded-lg shadow-lg" />
 
 </div>
+</div>
+
+---
+
+# Build components in isolation
+
+<div class="grid grid-cols-2 gap-8 mt-8 items-start">
+<div class="text-center">
+
+**Storybook** (web)
+
+<img src="/storybook.png" class="mt-2 mx-auto rounded-lg shadow-lg" />
+
+</div>
+<div class="text-center">
+
+**Widgetbook** (mobile)
+
+<img src="/widgetbook.png" class="mt-2 mx-auto rounded-lg shadow-lg" />
+
+</div>
+</div>
+
+---
+
+# Why not Optimizely?
+
+A mobile release ships whatever's in `master`. Turn the flag on later, and every phone on that release gets the half-built version.
+
+<div class="mt-6">
+
+```
+ build ──────────────► build ──────────────► build ──────────────► done
+   ▲                     ▲                                           ▲
+ flag off          RELEASE CUT                                flag turned on
+                  (half-built code                        (everyone on that release
+                   is on devices)                          gets the half-built feature)
+```
+
 </div>
 
 <v-click>
 
-<div class="mt-8 text-center text-xl">
+<div class="mt-6 text-xl">
 
-The dark stuff is a <strong>liability with a due date</strong>, not a permanent shape.
+**Don't reach for Optimizely when you're only trying to keep code dark.**
 
 </div>
 
 </v-click>
 
-<!--
-This is the part teams skip. Dark code that never gets linked up or cleaned
-up is just dead code with extra steps — and unlike normal dead code, it's
-often *half-wired*, which is worse: it looks alive to anyone reading it.
--->
-
 ---
 
-# Blast radius, honestly
+# Optimizely's job: the final wire-up
 
-Not every dark-code technique is risk-free just because users can't see it.
-
-<div class="mt-4">
-
-| Technique          | Runtime cost while dark        | Cleanup risk if abandoned         |
-|---------------------|----------------------------------|-------------------------------------|
-| Feature flag        | Extra branch, extra tests       | Stale flag, two live code paths     |
-| Dark page/route      | ~None                            | Dead code, low risk                 |
-| Additive schema      | Extra column, dual writes        | Orphaned column                    |
-| Branch by abstraction | Extra indirection layer          | Two implementations to maintain     |
-
-</div>
+A **rollout** tool, not a hiding tool.
 
 <v-click>
 
-Pick the lightest technique that's actually safe for the layer you're touching.
+<div class="mt-6">
+
+1. Build it dark: debug page, local flag, Storybook/Widgetbook
+2. Wire up the real entry point, **behind an Optimizely flag**
+3. Roll out gradually, and turn it off if something goes wrong
+4. Delete the flag when rollout is done
+
+</div>
 
 </v-click>
 
@@ -291,13 +194,196 @@ layout: center
 class: text-center
 ---
 
-# Recap
+# The Indiana Jones Swap™
 
-<div class="text-left mx-auto" style="max-width: 32rem;">
+<img src="/indiana-jones-swap.jpg" class="h-96 mx-auto rounded-lg shadow-lg" />
 
-1. Small PRs only work if the feature can stay invisible until it's ready
-2. Flags, dark pages, unlinked routes, additive migrations — pick per layer
-3. The "link it up" PR and the "clean it up" PR are part of the feature,
-   not optional follow-through
+---
+layout: center
+class: text-center
+---
+
+<img src="/kent-beck-easy-change.png" class="w-full mx-auto rounded-lg shadow-lg" />
+
+---
+
+# How the swap works
+
+Migrating from one pattern to another? Program to a common interface first.
+
+```
+Caller → Interface → OldImplementation
+```
+
+<v-click>
+
+Build the replacement behind the same interface, at your own pace, as small MRs:
+
+```
+Caller → Interface → OldImplementation
+                    NewImplementation   ← "The New Hotness"
+```
+
+</v-click>
+
+<v-click>
+
+The swap is one small MR. Then delete the old one.
+
+</v-click>
+
+---
+
+# Swap example: behind an interface
+
+<div class="grid grid-cols-2 gap-6 mt-4">
+<div>
+
+```java
+public interface AccountService {
+    AccountResponse getAccount(Long id);
+}
+
+@Primary
+@Service
+class OldAccountService
+        implements AccountService { ... }
+
+@Service
+class NewHotnessAccountService
+        implements AccountService { ... }
+```
 
 </div>
+<div v-click>
+
+```java
+@RestController
+@RequiredArgsConstructor
+class AccountController {
+    private final AccountService accountService;
+
+    @GetMapping("/accounts/{id}")
+    AccountResponse get(@PathVariable Long id) {
+        return accountService.getAccount(id);
+    }
+}
+```
+
+</div>
+</div>
+
+<v-click>
+
+The controller only knows the interface. The swap is moving `@Primary`:
+
+```java
+@Service
+class OldAccountService implements AccountService { ... }
+
+@Primary
+@Service
+class NewHotnessAccountService implements AccountService { ... }
+```
+
+</v-click>
+
+---
+
+# Swap example: UI component
+
+Rewrite the internals in a new file. Same props, same rendered output.
+
+```tsx
+export function AccountListNewHotness({ accounts, onSelect }: AccountListProps) { ... }
+```
+
+<v-click>
+
+The swap is one line in `AccountList.tsx`:
+
+```tsx
+export { AccountListNewHotness as AccountList } from './AccountListNewHotness'
+```
+
+</v-click>
+
+<v-click>
+
+<div class="mt-4">
+
+Every caller keeps importing `AccountList`. Delete the old implementation once the swap ships.
+
+</div>
+
+</v-click>
+
+---
+layout: section
+---
+
+# Will it work when we turn it on?
+
+<!--
+- Dark code makes it easy to merge, but it doesn't tell you whether the pieces fit together.
+- Build each part separately and wire them up at the end, and things drift. The wire-up gets painful, and you can't tell whether the behavior you wanted survived.
+-->
+
+---
+
+# The testing trophy
+
+<img src="/testing-trophy.jpg" class="h-96 mx-auto mt-2 rounded-lg shadow-lg" />
+
+<!--
+- Brief on the trophy: most of your confidence comes from integration tests, not from piling up unit tests. Ten seconds, the room knows it.
+-->
+
+---
+
+# Dark code has no users
+
+```mermaid {scale: 1.1}
+flowchart LR
+  U([User]) --x N[No entry point yet]
+  T([IT test]) --> C
+  subgraph dark [Dark feature]
+    direction LR
+    C[Controller] --> S[Service] --> R[Repository] --> D[(DB)]
+  end
+```
+
+<v-click>
+
+<div class="text-center text-xl mt-8">
+
+Integration tests are its only users.
+
+</div>
+
+</v-click>
+
+<!--
+- Normal code gets tested by production every day. Dark code gets no feedback until launch day. Your tests are the only thing exercising it.
+- Write ITs for the key behaviors early, before the pieces are polished. Then rework any layer, and the tests tell you if you broke something.
+- Backend example: a rough working version of the service first, with ITs all the way to the database. Make it good afterward.
+- Tie back to the swap: ITs are how you know The New Hotness behaves like the old version before you make the swap.
+-->
+
+---
+layout: center
+class: text-center
+---
+
+<img src="/my-family.JPG" class="h-80 mx-auto mt-6 rounded-lg shadow-lg" />
+
+<div class="mt-6 text-3xl">
+
+Questions?
+
+</div>
+
+<!--
+- You're still listening, so it worked.
+- These are tools that have worked for me, not rules. What's worked for you? What's burned you?
+-->
